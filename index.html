@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BDA Performance Portal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Inter',sans-serif}</style>
+</head>
+<body class="bg-gray-100 min-h-screen antialiased text-gray-800">
+
+<!-- LOGIN -->
+<div id="login-view" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md space-y-6">
+    <div class="text-center">
+      <div class="bg-blue-600 text-white w-12 h-12 mx-auto rounded-xl flex items-center justify-center font-bold text-xl mb-3">BDA</div>
+      <h2 class="text-2xl font-bold text-gray-900">Performance Portal</h2>
+      <p class="text-sm text-gray-500 mt-1">Please sign in to continue</p>
+    </div>
+    <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">User ID</label>
+        <input type="text" id="login-userid" required placeholder="e.g. BDA001 or MGR01" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Password / Role Key</label>
+        <input type="password" id="login-pass" required placeholder="Enter password" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+      </div>
+      <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition shadow-sm">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-view" class="hidden min-h-screen flex flex-col">
+  <header class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-40">
+    <div class="flex items-center space-x-3">
+      <div class="bg-blue-600 text-white p-2 rounded-lg font-bold text-lg">BDA</div>
+      <h1 class="text-xl font-bold text-gray-800">Performance Management Portal</h1>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button onclick="refreshData()" class="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition">Refresh</button>
+      <div class="text-right">
+        <p id="user-display-name" class="text-sm font-semibold text-gray-900">User</p>
+        <p id="user-display-role" class="text-xs text-gray-500">Role: --</p>
+      </div>
+      <button onclick="logout()" class="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition">Log out</button>
+    </div>
+  </header>
+
+  <div class="flex flex-1 min-h-0" style="height:calc(100vh - 65px)">
+    <aside class="w-64 bg-white border-r border-gray-200 p-4 flex flex-col justify-between shrink-0">
+      <div class="space-y-1">
+        <button id="nav-leaderboard" onclick="switchTab('leaderboard')" class="w-full text-left px-4 py-3 text-blue-600 bg-blue-50 rounded-lg font-semibold transition">Leaderboard</button>
+        <button id="nav-leads" onclick="switchTab('leads')" class="w-full text-left px-4 py-3 text-blue-600 bg-blue-50 rounded-lg font-semibold transition">Leads Management</button>
+        <button id="nav-pr" onclick="switchTab('pr')" class="w-full text-left px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">PRs &amp; Walk-ins</button>
+        <button id="nav-training" onclick="switchTab('training')" class="w-full text-left px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">Mandatory Training</button>
+        <button id="nav-manager" onclick="switchTab('manager')" class="hidden w-full text-left px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">Manager Overview</button>
+      </div>
+      <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
+        <h4 class="text-xs font-bold text-gray-400 mb-2">Weekly leaderboard</h4>
+        <div class="space-y-2 text-xs">
+          <div><span class="text-gray-500">Most leads:</span> <span id="leader-leads" class="font-bold text-gray-800">Loading...</span></div>
+          <div><span class="text-gray-500">Most PRs:</span> <span id="leader-pr" class="font-bold text-green-600">Loading...</span></div>
+          <div><span class="text-gray-500">Most trainings:</span> <span id="leader-training" class="font-bold text-indigo-600">Loading...</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="flex-1 p-8 overflow-y-auto">
+      <div id="status-banner" class="hidden mb-6 p-4 rounded-xl border text-sm font-medium"></div>
+      <!-- Leaderboard Homepage Tab -->
+    <div id="tab-leaderboard" class="tab-content space-y-6">
+      <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold text-gray-800">Team Leaderboard &amp; Rankings</h2>
+        <span class="text-xs text-gray-500">Weekly performance standings</span>
+      </div>
+
+      <!-- Ranking Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center space-x-2">
+            <span>🏆 Top Lead Generators (This Week)</span>
+          </h3>
+          <div id="leaderboard-leads-list" class="space-y-3 text-sm">
+            <p class="text-gray-400 text-sm">Loading rankings...</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center space-x-2">
+            <span>🌟 Top PR Closers</span>
+          </h3>
+          <div id="leaderboard-pr-list" class="space-y-3 text-sm">
+            <p class="text-gray-400 text-sm">Loading rankings...</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center space-x-2">
+            <span>📚 Training Champions</span>
+          </h3>
+          <div id="leaderboard-training-list" class="space-y-3 text-sm">
+            <p class="text-gray-400 text-sm">Loading rankings...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+      <!-- Leads -->
+      <div id="tab-leads" class="tab-content space-y-6">
+        <h2 class="text-2xl font-bold text-gray-800">Leads Tracker</h2>
+
+        <form id="lead-form" onsubmit="submitLead(event)" class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+          <h3 class="text-sm font-semibold text-gray-700 mb-3">Add new lead</h3>
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <input id="lead-partner" required placeholder="Partner name" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+            <input id="lead-phone" required pattern="[0-9]{10}" title="10-digit phone number" placeholder="Phone (10 digits)" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+            <input id="lead-date" type="date" required class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+            <input id="lead-bda" placeholder="BDA ID" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+            <button id="lead-submit" type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold py-2 transition">Add lead</button>
+          </div>
+          <p id="lead-hint" class="text-xs text-gray-400 mt-2"></p>
+        </form>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead><tr class="bg-gray-50 text-gray-600 text-xs border-b">
+              <th class="px-6 py-3 font-semibold">Lead ID</th><th class="px-6 py-3 font-semibold">Partner name</th>
+              <th class="px-6 py-3 font-semibold">Phone</th><th class="px-6 py-3 font-semibold">Walk-in date</th>
+              <th class="px-6 py-3 font-semibold">BDA ID</th>
+            </tr></thead>
+            <tbody id="leads-table-body" class="divide-y divide-gray-200 text-sm">
+              <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading leads...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PRs -->
+      <div id="tab-pr" class="tab-content hidden space-y-6">
+        <div class="flex justify-between items-center">
+          <h2 class="text-2xl font-bold text-gray-800">PRs &amp; Walk-ins</h2>
+          <div class="flex space-x-3 text-xs font-semibold">
+            <span class="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-lg">Team PRs: <strong id="team-pr-counter">0/40</strong></span>
+            <span class="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg">My PRs: <strong id="bda-pr-counter">0/4</strong></span>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead><tr class="bg-gray-50 text-gray-600 text-xs border-b">
+              <th class="px-6 py-3 font-semibold">Lead ID</th><th class="px-6 py-3 font-semibold">Partner name</th>
+              <th class="px-6 py-3 font-semibold">PR status</th><th class="px-6 py-3 font-semibold">PR date</th>
+            </tr></thead>
+            <tbody id="pr-table-body" class="divide-y divide-gray-200 text-sm">
+              <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Loading PR entries...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Training -->
+      <div id="tab-training" class="tab-content hidden space-y-6">
+        <h2 class="text-2xl font-bold text-gray-800">Mandatory Training Status</h2>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead><tr class="bg-gray-50 text-gray-600 text-xs border-b">
+              <th class="px-6 py-3 font-semibold">Lead ID</th><th class="px-6 py-3 font-semibold">Partner name</th>
+              <th class="px-6 py-3 font-semibold">BDA ID</th><th class="px-6 py-3 font-semibold">Training attended</th>
+              <th class="px-6 py-3 font-semibold">Training passed</th>
+            </tr></thead>
+            <tbody id="training-table-body" class="divide-y divide-gray-200 text-sm">
+              <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading training records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Manager -->
+      <div id="tab-manager" class="tab-content hidden space-y-6">
+        <div class="flex justify-between items-center">
+          <h2 class="text-2xl font-bold text-gray-800">Manager Performance &amp; Funnel Analytics</h2>
+          <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">Manager access only</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <p class="text-sm font-medium text-gray-500">Leads (today / this week)</p>
+            <h3 id="mgr-leads-timeframe" class="text-2xl font-bold text-gray-900 mt-2">0 / 0</h3>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <p class="text-sm font-medium text-gray-500">Team leads &rarr; PR ratio</p>
+            <h3 id="mgr-team-lead-pr-ratio" class="text-2xl font-bold text-blue-600 mt-2">0%</h3>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <p class="text-sm font-medium text-gray-500">Team PR &rarr; training ratio</p>
+            <h3 id="mgr-team-pr-training-ratio" class="text-2xl font-bold text-indigo-600 mt-2">0%</h3>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <p class="text-sm font-medium text-gray-500">Total successful PRs</p>
+            <h3 id="mgr-total-prs" class="text-2xl font-bold text-green-600 mt-2">0</h3>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead><tr class="bg-gray-50 text-gray-600 text-xs border-b">
+              <th class="px-6 py-3 font-semibold">BDA ID</th><th class="px-6 py-3 font-semibold">Leads (week / today)</th>
+              <th class="px-6 py-3 font-semibold">Successful PRs</th><th class="px-6 py-3 font-semibold">Trainings passed</th>
+              <th class="px-6 py-3 font-semibold">Leads &rarr; PR</th><th class="px-6 py-3 font-semibold">PR &rarr; training</th>
+            </tr></thead>
+            <tbody id="manager-breakdown-tbody" class="divide-y divide-gray-200 text-sm">
+              <tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading manager analytics...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
