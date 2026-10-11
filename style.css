@@ -1,0 +1,16 @@
+body { font-family: 'Inter', sans-serif; }
+
+/* Subtle scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Tables: keep numbers and IDs from wrapping awkwardly on phones */
+table td, table th { white-space: nowrap; }
+
+/* Number inputs in the targets table: no spinner clutter */
+input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
